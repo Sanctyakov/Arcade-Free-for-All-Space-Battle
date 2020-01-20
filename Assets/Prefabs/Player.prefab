@@ -9444,7 +9444,7 @@ GameObject:
   m_Component:
   - component: {fileID: 400004}
   m_Layer: 0
-  m_Name: Shot Spawn
+  m_Name: Blaster Spawn
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9478,7 +9478,9 @@ GameObject:
   - component: {fileID: 5400000}
   - component: {fileID: 6400000}
   - component: {fileID: 11400000}
-  - component: {fileID: 8200000}
+  - component: {fileID: 8548546603656598778}
+  - component: {fileID: -5363396600622777015}
+  - component: {fileID: 3985645553143067778}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -9565,7 +9567,7 @@ Rigidbody:
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 52
   m_CollisionDetection: 0
 --- !u!64 &6400000
 MeshCollider:
@@ -9590,122 +9592,74 @@ MonoBehaviour:
   m_GameObject: {fileID: 100006}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 054c19cd9824a4257a98a59874c988f3, type: 3}
+  m_Script: {fileID: 11500000, guid: 023db7bc85a181547b3c4653881400b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 10
+  score: 0
+  health: 100
   tilt: 5
-  fireRate: 0.25
-  rocketRate: 2
+  speed: 10
+  collisionDamage: 50
   boundary:
-    xMin: -5.8
-    xMax: 5.8
-    zMin: -4
-    zMax: 14
+    xMin: -5.75
+    xMax: 5.75
+    zMin: -3
+    zMax: 13.5
   explosion: {fileID: 100008, guid: 3455fe69f7ddc4604b95bf9b0a1e88d7, type: 3}
-  shot: {fileID: 100000, guid: f4ec271e525e14ca9927a07e6a2e153d, type: 3}
-  shotSpawn: {fileID: 400004}
-  shotSFX: {fileID: 8300000, guid: bf75b984df8a84987bcf3a8bf6e2862d, type: 3}
-  rocket: {fileID: 1567194746187364, guid: 29f613712c83e684e87ddb421148f2ca, type: 3}
-  rocketSpawn: {fileID: 6478721257348277565}
-  rocketSFX: {fileID: 8300000, guid: 10f12a413146ccc4291ac8b5581f4c6a, type: 3}
---- !u!82 &8200000
-AudioSource:
+  coin: {fileID: 0}
+  rb: {fileID: 5400000}
+  explosionSFX: {fileID: 8300000, guid: a019ae3af8e864616b85773c509f5285, type: 3}
+  free: 1
+--- !u!114 &8548546603656598778
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 100006}
   m_Enabled: 1
-  serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 24300002, guid: 5a79c05dbb627a24a9ad1254e132f4d3,
-    type: 2}
-  m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 0
-  m_Volume: 0.5
-  m_Pitch: 1
-  Loop: 0
-  Mute: 0
-  Spatialize: 0
-  SpatializePostEffects: 0
-  Priority: 128
-  DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
-  Pan2D: 0
-  rolloffMode: 0
-  BypassEffects: 0
-  BypassListenerEffects: 0
-  BypassReverbZones: 0
-  rolloffCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  panLevelCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  spreadCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  reverbZoneMixCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93c004e315415a14980e0b07a57f5d59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ship: {fileID: 11400000}
+  blaster: {fileID: -5363396600622777015}
+  rocketLauncher: {fileID: 3985645553143067778}
+--- !u!114 &-5363396600622777015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d5d9260fef0ce44e811051a8213ca08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shot: {fileID: 100000, guid: f4ec271e525e14ca9927a07e6a2e153d, type: 3}
+  shotSpawn: {fileID: 400004}
+  fireRate: 0.25
+  nextFire: 0
+  shotSFX: {fileID: 8300000, guid: bf75b984df8a84987bcf3a8bf6e2862d, type: 3}
+--- !u!114 &3985645553143067778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d62849ac54e2bfc4c81c43fe5dd2ae60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shot: {fileID: 1567194746187364, guid: 29f613712c83e684e87ddb421148f2ca, type: 3}
+  shotSpawn: {fileID: 6478721257348277565}
+  fireRate: 5
+  nextFire: 0
+  shotSFX: {fileID: 8300000, guid: 10f12a413146ccc4291ac8b5581f4c6a, type: 3}
+  ammo: 0
 --- !u!1 &100008
 GameObject:
   m_ObjectHideFlags: 0
@@ -9779,6 +9733,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Shield
+      objectReference: {fileID: 0}
+    - target: {fileID: 4464732590883769288, guid: 553c5b0b3bd12524fa89938156bf65b0,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5242401994275337130, guid: 553c5b0b3bd12524fa89938156bf65b0,
         type: 3}

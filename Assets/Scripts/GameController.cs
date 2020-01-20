@@ -2,58 +2,51 @@
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 
 public class GameController : MonoBehaviour
 {
     #region Game variables
 
-    public AudioSource audioSource;
-	public GameObject enemy, player, splashScreen, pauseScreen, gameOverScreen;
-	public Vector3 spawnValues;
-    public Transform playerSpawn;
-    public int enemyAmount, maxLives, maxHealth,  rocketCapacity, shieldCapacity, maxRocketCapacity, maxShieldCapacity;
-	public float playerRespawnTime, roundTime, shieldRate, minShieldRate;
-    public Button gameOverQuitButton, pauseQuitButton;
-    public Text coinsText, timeText, livesText, healthText, killsText, rocketsText,
-                shieldText, subText, mainText, scoreText, hiScoreText, pauseText;
+    //Public variables that directly affect gameplay. Set within the inspector for ease of testing.
 
-    private int coins, score, round, kills, lives, rockets, enemiesToSpawn;
-    private float roundTimeCounter, enemySpawnTime;
+    public int enemyAmount, maxLives, rockets, rocketCapacity, maxRocketCapacity;
+
+    public float maxHealth, playerRespawnTime, roundTime, shieldRate, minShieldRate, shieldCapacity, maxShieldCapacity;
+
+    #endregion
+
+    #region Game object references
+
+    //References set in inspector.
+
+    public GameObject enemy, player, splashScreen, pauseScreen, gameOverScreen;
+
+    public Vector3 spawnValues;
+
+    public Transform playerSpawn;
+
+    public Button gameOverQuitButton, pauseQuitButton;
+
+    public Text coinsText, timeText, livesText, maxLivesText, healthText, maxHealthText, killsText, rocketsText, rocketCapacityText,
+                shieldText, shieldCapacityText, subText, mainText, scoreText, hiScoreText, pauseText;
+
+    public AudioClip coin;
+
+    #endregion
+
+    #region Game private variables
+
+    //Private variables that depend on other game components and should only be modified within this script.
+
+    private int coins, kills, lives, round, enemiesToSpawn;
+
+    private float score, roundTimeCounter, enemySpawnTime;
+
     private bool playerDamaged;
 
-    public int MaxHealth
-    {
-        get { return maxHealth; }
-    }
-
-    public int ShieldCapacity
-    {
-        get { return shieldCapacity; }
-    }
-
-    public float ShieldRate
-    {
-        get { return shieldRate; }
-        set
-        {
-            if (value >= minShieldRate)
-            {
-                shieldRate = minShieldRate;
-            }
-            else
-            {
-                shieldRate = value;
-            }
-        }
-    }
-
-    public int Rockets
-    {
-        get { return rockets; }
-    }
-
-    private enum GameStates
+    private enum GameStates //Game states will determine game elements' activity.
     {
         GameStart,
         Pause,
@@ -66,51 +59,69 @@ public class GameController : MonoBehaviour
 
     private GameStates gameState;
 
-    private string hiScorePath = Path.Combine(Application.streamingAssetsPath, "hiscore.txt");
+    private string hiScorePath = Path.Combine(Application.streamingAssetsPath, "hiscore.txt"); //The folder location of the hiscore file. A simple txt file will do for this game.
 
-    public delegate void GameFreeze();
-    public event GameFreeze OnGameFreeze;
+    private Dictionary<GameStates, string> mainTexts = new Dictionary<GameStates, string>() //We sync main texts with Game States so that they change accordingly.
+    {
+        { GameStates.GameStart, "Arcade Free for All Space Battle!" },
+        { GameStates.Pause, "Pause" },
+        { GameStates.RoundStart, "Round"},
+        { GameStates.Round, ""},
+        { GameStates.RoundEnd, "Round over!"},
+        { GameStates.Shopping, ""},
+        { GameStates.GameOver, "Game Over"}
+    };
 
-    public delegate void GamePause();
-    public event GamePause OnGamePause;
-
-    public delegate void GameFree();
-    public event GameFree OnGameFree;
-
-    public delegate void HealthRestored();
-    public event HealthRestored OnHealthRestored;
-
-    public delegate void ShieldUpgraded();
-    public event ShieldUpgraded OnShieldUpgraded;
+    private Dictionary<GameStates, string> subTexts = new Dictionary<GameStates, string>() //This way, text values are already stored and don't need to be created on runtime.
+    {
+        { GameStates.GameStart, "Press any key to start" },
+        { GameStates.Pause, "" },
+        { GameStates.RoundStart, "Are you ready?"},
+        { GameStates.Round, ""},
+        { GameStates.RoundEnd, "You did great!"},
+        { GameStates.Shopping, ""},
+        { GameStates.GameOver, ""}
+    };
 
     #endregion
 
     #region Shop variables
 
-    public GameObject shop;
+    public GameObject shop; //The parent game object for all others.
     public int lifePrice, healthPrice, rocketsPrice, rocketCapacityPrice, shieldRatePrice, shieldCapacityPrice;
-    private int currentRockets;
     public Button lifeButton, healthButton, rocketsButton, rocketCapacityButton, shieldRateButton, shieldCapacityButton;
-    public GameObject lifeCheck, healthCheck, rocketsCheck, rocketCapacityCheck, shieldRateCheck, shieldCapacityCheck; 
+    public GameObject lifeCheck, healthCheck, rocketsCheck, rocketCapacityCheck, shieldRateCheck, shieldCapacityCheck;
     public Text lifePriceText, healthPriceText, rocketsPriceText, rocketCapacityPriceText, shieldRatePriceText, shieldCapacityPriceText;
 
     #endregion
 
     #region Game
 
-    void Start ()
-	{
-        SpawnPlayer();
-        round = 0;
-		coins = 0;
-        score = 0;
-        kills = 0;
+    void Start()
+    {
+        GameControl.SetGameController(this); //Set reference to static class, which is used to mediate between this script and the rest of the game.
+
+        GameControl.SetAudioSource(GetComponent<AudioSource>()); //Set static class' reference to the one and only audio source (it will do for this game).
+
         lives = maxLives;
         rockets = rocketCapacity;
+        score = 0;
+        kills = 0;
 
-        lifePriceText.text = lifePrice + " coins";
+        UpdateNumText(livesText, lives); //Update UI nummeric value texts.
+        UpdateNumText(maxLivesText, maxLives);
+        UpdateNumText(coinsText, coins);
+        UpdateNumText(scoreText, score);
+        UpdateNumText(rocketsText, rockets);
+        UpdateNumText(rocketCapacityText, rocketCapacity);
+        UpdateNumText(shieldCapacityText, shieldCapacity);
+        UpdateNumText(killsText, kills);
+        UpdateNumText(maxHealthText, maxHealth);
+
+
+        lifePriceText.text = lifePrice + " coins"; //Set up shop texts according to prices set in inspector.
         healthPriceText.text = healthPrice + " coins";
-        rocketsPriceText.text = rocketsPrice + " coins";
+        rocketsPriceText.text = rocketsPrice + " coins"; //We set them up this simple way because prices do not increase as per current version.
         rocketCapacityPriceText.text = rocketCapacityPrice + " coins";
         shieldRatePriceText.text = shieldRatePrice + " coins";
         shieldCapacityPriceText.text = shieldCapacityPrice + " coins";
@@ -118,20 +129,14 @@ public class GameController : MonoBehaviour
         gameOverQuitButton.interactable = false;
         pauseQuitButton.interactable = false;
 
-        UpdateKills();
-        UpdateRockets();
-		UpdateCoins();
-        UpdateScore(score);
-        UpdateLives();
-
-        ChangeState(GameStates.GameStart);
-
         shop.SetActive(false);
         pauseScreen.SetActive(false);
         gameOverScreen.SetActive(false);
         splashScreen.SetActive(true);
 
-        if (File.Exists(hiScorePath))
+        ChangeState(GameStates.GameStart); //The first game state, from which all others derive.
+
+        if (File.Exists(hiScorePath)) //Read hi score from file and update accordingly if it exists.
         {
             StreamReader reader = new StreamReader(hiScorePath);
             hiScoreText.text = "Highest score: " + reader.ReadLine();
@@ -141,34 +146,40 @@ public class GameController : MonoBehaviour
         {
             hiScoreText.text = "";
         }
+
+        SpawnPlayer(); //Ready player 1.
+
+        GameControl.CallGameFreeze();
     }
-	
-	void Update ()
-	{
+
+    void Update()
+    {
         switch (gameState)
         {
-            case GameStates.GameStart:
+            case GameStates.GameStart: //Start the game upon any key press.
+
                 if (Input.anyKeyDown)
                 {
                     RoundStart();
                     splashScreen.SetActive(false);
                 }
                 break;
-            case GameStates.Round:
+            case GameStates.Round: //Keep track of round time and update its display.
+
                 roundTimeCounter += Time.deltaTime;
 
-                float timeDiff = Mathf.RoundToInt(roundTime - roundTimeCounter);
+                float timeDiff = roundTime - roundTimeCounter;
 
                 if (timeDiff >= 0)
                 {
-                    timeText.text = "Time: " + timeDiff;
+                    UpdateNumText(timeText, timeDiff);
                 }
                 else
                 {
-                    timeText.text = "Time: 0";
+                    UpdateNumText(timeText, 0.0f); //Time is never negative.
                 }
 
-                if (Input.GetKeyDown(KeyCode.P))
+                if (Input.GetKeyDown(KeyCode.P)) //Pause the game upon P key down.
                 {
                     Pause();
                 }
@@ -176,90 +187,85 @@ public class GameController : MonoBehaviour
         }
     }
 
-    void ChangeState(GameStates anotherGameState)
+
+    void ChangeState(GameStates anotherGameState) //Change states and update texts.
     {
         gameState = anotherGameState;
+
+        mainText.text = mainTexts[gameState];
+
+        subText.text = subTexts[gameState];
 
         switch (gameState)
         {
             case GameStates.GameStart:
-                OnGameFreeze?.Invoke();
-                mainText.text = "Arcade GameFree for All Space Battle!";
-                subText.text = "Press any key to start";
                 pauseText.text = "";
                 break;
             case GameStates.Pause:
-                OnGameFreeze?.Invoke();
-                OnGamePause?.Invoke();
-                mainText.text = "Pause";
-                subText.text = "";
                 pauseText.text = "";
                 break;
             case GameStates.RoundStart:
-                OnGameFree?.Invoke();
-                mainText.text = "Round " + round;
-                subText.text = "Are you ready?";
-                pauseText.text = "";
+                mainText.text += " " + round;
                 break;
             case GameStates.Round:
-                mainText.text = "";
-                subText.text = "";
                 pauseText.text = "Press 'P' to pause";
                 break;
             case GameStates.RoundEnd:
-                mainText.text = "Round over!";
-                subText.text = "You did great!";
                 pauseText.text = "";
                 break;
             case GameStates.Shopping:
-                OnGameFreeze?.Invoke();
-                mainText.text = "";
-                subText.text = "";
-                pauseText.text = "";
                 break;
             case GameStates.GameOver:
-                mainText.text = "Game Over";
-                subText.text = "";
                 pauseText.text = "";
                 break;
         }
     }
 
-    public void Pause()
+    public void Pause() //Called when 'P' key is pressed during round state.
     {
-        OnGameFreeze?.Invoke();
         ChangeState(GameStates.Pause);
+
         pauseScreen.SetActive(true);
 
-        if (!Application.isEditor)
+        if (!Application.isEditor) //No quitting when playing in the editor.
         {
             pauseQuitButton.interactable = true;
         }
+
+        GameControl.CallGameFreeze(); //Game objects subscribed to this event will stop doing things.
     }
 
-    void Resume()
+    void Resume() //Called through the 'Resume' button in the In-Game Menu.
     {
-        OnGameFree?.Invoke();
         pauseScreen.SetActive(false);
+
         ChangeState(GameStates.Round);
+
+        GameControl.CallGameFree();
     }
 
-    void RoundStart()
+    void RoundStart() //Sets everything for a new round.
     {
-        OnGameFree?.Invoke();
         roundTimeCounter = 0;
+
         round++;
-        timeText.text = "Time: " + roundTime;
+
+        UpdateNumText(timeText, roundTime);
+
         enemiesToSpawn = enemyAmount;
+
         ChangeState(GameStates.RoundStart);
+
         StartCoroutine(Round());
+
+        GameControl.CallGameFree();
     }
 	
-	IEnumerator Round ()
+	IEnumerator Round () //Spawns a certain amount of enemies at regular intervals.
 	{
         enemySpawnTime = roundTime / enemyAmount;
 
-        yield return new WaitForSeconds (5);
+        yield return new WaitForSeconds (5); //Five seconds are given at the start of each round.
 
         ChangeState(GameStates.Round);
 
@@ -267,11 +273,13 @@ public class GameController : MonoBehaviour
         {
             while (gameState == GameStates.GameOver || gameState == GameStates.Pause)
             {
-                yield return null;
+                yield return null; //Do nothing if the game is over or paused.
             }
 
             Vector3 spawnPosition = new Vector3(Random.Range(-spawnValues.x, spawnValues.x), spawnValues.y, spawnValues.z);
-            Quaternion spawnRotation = Quaternion.identity;
+
+            Quaternion spawnRotation = Quaternion.identity; //Spawn positions are randomly generated.
+
             Instantiate(enemy, spawnPosition, spawnRotation);
 
             enemiesToSpawn--;
@@ -279,45 +287,50 @@ public class GameController : MonoBehaviour
             yield return new WaitForSeconds(enemySpawnTime);
         }
 
-        if (gameState == GameStates.Round)
+        if (gameState == GameStates.Round) //The round is ended after the last enemy is spawned.
         {
             ChangeState(GameStates.RoundEnd);
 
             enemyAmount *= 2;
             enemiesToSpawn = enemyAmount;
 
-            minShieldRate -= 0.5f;
-
             UpdateHiScore();
 
-            yield return new WaitForSeconds(5);
+            yield return new WaitForSeconds(5); //Wait five seconds before proceeding to the shop.
 
-            Shopping();
+            ShopSetUp();
         }
     }
 
-    public void EnemyDown()
-    {
-        kills++;
-        UpdateKills();
-    }
-
-    public void PlayerDown()
+    public void PlayerDown() //Update lives upon player death.
     {
         lives--;
-        UpdateLives();
 
-        if (lives > 0)
+        if (lives > 0) //Respawn if there are lives left, otherwise end the game.
         {
             StartCoroutine(Respawn());
+
+            playerDamaged = false;
         }
         else
         {
+            lives = 0;
+
             GameOver();
         }
+
+        UpdateNumText(livesText, lives);
     }
 
-    IEnumerator Respawn()
+    public void EnemyDown(float shipScore) //Updates kills and score upon destroying an enemy ship.
+    {
+        kills++;
+        score += shipScore;
+        UpdateNumText(scoreText, score);
+        UpdateNumText(killsText, kills);
+    }
+
+    IEnumerator Respawn() //Just a simple timer for respawn time, separate from all others.
     {
         yield return new WaitForSeconds(playerRespawnTime);
 
@@ -334,15 +347,23 @@ public class GameController : MonoBehaviour
         Instantiate(player, playerSpawn.position, playerSpawn.rotation);
     }
 
-    public void RocketLaunched()
+    public void RocketLaunched() //Rockets have a limited amount of ammo, which this script keeps track of.
     {
         rockets--;
-        UpdateRockets();
+        UpdateNumText(rocketsText, rockets);
     }
 
-    void GameOver()
+    public void AddCoin() //Called when the player collects a single coin.
+    {
+        coins++;
+        UpdateNumText(coinsText, coins);
+        GameControl.PlayClip(coin);
+    }
+
+    void GameOver() //Displays the Game Over screen with restart / quit buttons.
     {
         ChangeState(GameStates.GameOver);
+
         gameOverScreen.SetActive(true);
 
         if (!Application.isEditor)
@@ -353,29 +374,33 @@ public class GameController : MonoBehaviour
         UpdateHiScore();
     }
 
-    void UpdateHiScore()
+    void UpdateHiScore() //Opens up a reader to check if the current score is higher than the last.
     {
         if (File.Exists(hiScorePath))
         {
             StreamReader reader = new StreamReader(hiScorePath);
+
             int previousHiScore = int.Parse(reader.ReadLine());
+
             reader.Close();
 
-            if (previousHiScore < score)
+            if (previousHiScore < score) //If it's higher, overwrite it.
             {
                 TextWriter writer = new StreamWriter(hiScorePath, false);
+
                 writer.WriteLine(score.ToString());
+
                 writer.Close();
             }
         }
     }
 
-    public void Restart()
+    public void Restart() //Reloads the scene.
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    public void Quit()
+    public void Quit() //Called via UI.
     {
         Application.Quit();
     }
@@ -384,253 +409,150 @@ public class GameController : MonoBehaviour
 
     #region Shop
 
-    void Shopping ()
+    void ShopSetUp () //Activates / deactivates shop UI elements.
     {
         ChangeState(GameStates.Shopping);
 
-        currentRockets = rockets;
-
-        lifeCheck.SetActive(false);
+        lifeCheck.SetActive(false); //All checkmarks are deactivated, as no items have been bought yet.
         healthCheck.SetActive(false);
         rocketsCheck.SetActive(false);
         rocketCapacityCheck.SetActive(false);
         shieldRateCheck.SetActive(false);
         shieldCapacityCheck.SetActive(false);
 
-        shop.SetActive(true);
+        shop.SetActive(true); //The shop parent object.
 
-        if (coins > 0)
-        {
-            if (lives < maxLives && coins >= lifePrice)
-            {
-                lifeButton.interactable = true;
-            }
-            else
-            {
-                lifeButton.interactable = false;
-            }
+        ShopButtonsSetUp(); //Checks wether or not each shop item is purchasable.
 
-            if (playerDamaged && coins >= healthPrice)
-            {
-                healthButton.interactable = true;
-            }
-            else
-            {
-                healthButton.interactable = false;
-            }
-
-            if (rockets < rocketCapacity && coins >= rocketsPrice)
-            {
-                rocketsButton.interactable = true;
-            }
-            else
-            {
-                rocketsButton.interactable = false;
-            }
-
-            if (rocketCapacity < maxRocketCapacity && coins >= rocketCapacityPrice)
-            {
-                rocketCapacityButton.interactable = true;
-            }
-            else
-            {
-                rocketCapacityButton.interactable = false;
-            }
-
-            if (shieldRate <= minShieldRate && coins >= shieldRatePrice)
-            {
-                shieldRateButton.interactable = false;
-            }
-            else
-            {
-                shieldRateButton.interactable = true;
-            }
-
-            if (shieldCapacity < maxShieldCapacity && coins >= shieldCapacityPrice)
-            {
-                shieldCapacityButton.interactable = true;
-            }
-            else
-            {
-                shieldCapacityButton.interactable = false;
-            }
-        }
-        else
-        {
-            lifeButton.interactable = false;
-            healthButton.interactable = false;
-            rocketsButton.interactable = false;
-            rocketCapacityButton.interactable = false;
-            shieldCapacityButton.interactable = false;
-            shieldRateButton.interactable = false;
-        }
-        
+        GameControl.CallGameFreeze();
     }
 
-    public void AddCoin()
-    {
-        coins++;
-        UpdateCoins();
-        audioSource.Play();
-    }
-
-    public void SubstractCoins(int amount)
+    void SubstractCoins(int amount) //Substract coins from the total and check again if items should be purchasable.
     {
         coins -= amount;
 
-        if (coins <= 0)
-        {
-            coins = 0;
+        ShopButtonsSetUp();
 
-            lifeButton.interactable = false;
-            healthButton.interactable = false;
-            rocketsButton.interactable = false;
-            rocketCapacityButton.interactable = false;
-            shieldRateButton.interactable = false;
-            shieldCapacityButton.interactable = false;
-        }
-        else
-        {
-            if (coins < lifePrice)
-            {
-                lifeButton.interactable = false;
-            }
-            if (coins < healthPrice)
-            {
-                healthButton.interactable = false;
-            }
-            if (coins < rocketsPrice || rocketsCheck.activeSelf)
-            {
-                rocketsButton.interactable = false;
-            }
-            if (coins < rocketCapacityPrice)
-            {
-                rocketCapacityButton.interactable = false;
-            }
-            if (coins < shieldRatePrice)
-            {
-                shieldRateButton.interactable = false;
-            }
-            if (coins < shieldCapacityPrice)
-            {
-                shieldCapacityButton.interactable = false;
-            }
-        }
+        UpdateNumText(coinsText, coins); //Finally, display the new amount.
+    }
 
-        UpdateCoins();
+    void ShopButtonsSetUp() //Items can only be bought once per shopping phase. Once checked, buttons will become uninteractive.
+    {
+        lifeButton.interactable = lives < maxLives && coins >= lifePrice && !lifeCheck.activeSelf; //Each individual item will be purchasable if the player can afford it.
+
+        healthButton.interactable = playerDamaged && coins >= healthPrice && !healthCheck.activeSelf; //Health will not be available for purchase if it is at full.
+
+        rocketsButton.interactable = rockets < rocketCapacity && coins >= rocketsPrice && !rocketsCheck.activeSelf; //Equates the amount of rockets to its maximum capacity.
+
+        rocketCapacityButton.interactable = rocketCapacity < maxRocketCapacity && coins >= rocketCapacityPrice && !rocketCapacityCheck.activeSelf; //Increases rocket maximum capacity.
+
+        shieldRateButton.interactable = shieldRate <= minShieldRate && coins >= shieldRatePrice && !shieldRateCheck.activeSelf; //Decreases shield recharge rate.
+
+        shieldCapacityButton.interactable = shieldCapacity < maxShieldCapacity && coins >= shieldCapacityPrice && !shieldCapacityCheck.activeSelf; //Increases shield capacity.
     }
 
     public void PurchaseLives()
     {
         lives++;
-        SubstractCoins(lifePrice);
-        lifeButton.interactable = false;
+
+        UpdateNumText(livesText, lives);
+        
         lifeCheck.SetActive(true);
-        UpdateLives();
+
+        SubstractCoins(lifePrice);
     }
 
     public void PurchaseRockets()
     {
-        SubstractCoins(rocketsPrice);
         rockets = rocketCapacity;
-        rocketsButton.interactable = false;
+
+        UpdateNumText(rocketsText, rockets);
+
         rocketsCheck.SetActive(true);
-        UpdateRockets();
+
+        SubstractCoins(rocketsPrice);
+
+        GameControl.CallRocketsReplenished(); //Rocket launchers will replenish their ammo.
     }
 
     public void PurchaseHealth()
     {
-        OnHealthRestored?.Invoke();
-        SubstractCoins(healthPrice);
-        healthButton.interactable = false;
+        UpdateHealth(maxHealth);
+
         healthCheck.SetActive(true);
+
+        SubstractCoins(healthPrice);
+
+        GameControl.CallHealthRestored(); //The player is subscribed to this event to refill its instance life.
     }
 
-    public void PurchaseRocketCapacity()
+    public void PurchaseRocketCapacity() //Unlike with ammo, rocket launchers need not know their maximum capacity.
     {
-        SubstractCoins(rocketCapacityPrice);
         rocketCapacity++;
-        rocketCapacityButton.interactable = false;
 
-        if (!rocketsButton.interactable && rockets < rocketCapacity && coins >= rocketsPrice && !rocketsCheck.activeSelf)
-        {
-            rocketsButton.interactable = true;
-        }
+        UpdateNumText(rocketCapacityText, rocketCapacity);
 
         rocketCapacityCheck.SetActive(true);
-        UpdateRockets();
+
+        SubstractCoins(rocketCapacityPrice);
     }
 
     public void PurchaseShieldRate()
     {
-        SubstractCoins(shieldRatePrice);
-        shieldRate -= 0.5f;
-        shieldRateButton.interactable = false;
+        shieldRate -= 0.5f; //The shield rate is not displayed.
+
         shieldRateCheck.SetActive(true);
+
+        SubstractCoins(shieldRatePrice);
     }
 
     public void PurchaseShieldCapacity()
     {
-        SubstractCoins(shieldCapacityPrice);
         shieldCapacity += 10;
-        OnShieldUpgraded?.Invoke();
-        shieldCapacityButton.interactable = false;
+        
+        UpdateShield(shieldCapacity);
+        UpdateNumText(shieldCapacityText, shieldCapacity);
+
         shieldCapacityCheck.SetActive(true);
+
+        SubstractCoins(shieldCapacityPrice);
+
+        GameControl.CallShieldUpgraded(); //The player's shield will hear this event and increase its capacity.
     }
 
-    public void ShoppingDone ()
+    public void ShoppingDone () //Called upon by button interaction.
     {
         shop.SetActive(false);
-        RoundStart();
+
+        RoundStart(); //A new round starts.
     }
 
     #endregion
 
     #region HUD management
 
-    void UpdateLives()
+    public void UpdateHealth(float newHealth) //Update health according to damage received or restoration.
     {
-        livesText.text = "Lives: " + lives + " / " + maxLives;
-    }
-
-    public void UpdateHealth(int health)
-    {
-        healthText.text = "Health: " + health + " / " + MaxHealth;
-
-        if (health == MaxHealth)
-        {
-            playerDamaged = false;
-        }
-        else
+        if (newHealth != maxHealth)
         {
             playerDamaged = true;
         }
+        else
+        {
+            playerDamaged = false;
+        }
+
+        UpdateNumText(healthText, newHealth);
     }
 
-    void UpdateCoins()
+    public void UpdateShield(float shield) //Update shield according to damage received or regeneration.
     {
-        coinsText.text = "Coins: " + coins;
+        UpdateNumText(shieldText, shield);
     }
 
-    void UpdateRockets()
+    public void UpdateNumText (Text text, float value) //Updates a UI nummerical value (score, kills, etc.).
     {
-        rocketsText.text = "Rockets: " + rockets + " / " + rocketCapacity;
-    }
-
-    void UpdateKills()
-    {
-        killsText.text = "Kills: " + kills;
-    }
-
-    public void UpdateShield(int shield)
-    {
-        shieldText.text = "Shield: " + shield + " / " + ShieldCapacity;
-    }
-
-    public void UpdateScore(int scorePoints)
-    {
-        score += scorePoints;
-        scoreText.text = "Score: " + score;
+        text.text = Mathf.RoundToInt(value).ToString();
     }
 
     #endregion
